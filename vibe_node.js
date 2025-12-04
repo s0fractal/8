@@ -13,7 +13,12 @@ const NODE_ID = process.argv[2] || Math.floor(Math.random() * 10000);
 const K = 0.008;
 const OMEGA = 0.0;
 let energies = new Float32Array(8).fill(1.0);
-
+const norm = () => {
+    for (let i = 0; i < 8; i++) {
+        phases[i] = phases[i] % (Math.PI * 2);
+        if (phases[i] < 0) phases[i] += Math.PI * 2;
+    }
+};
 socket.bind(PORT, () => {
     socket.setBroadcast(true);
     socket.setMulticastTTL(128);
@@ -33,7 +38,7 @@ socket.on('message', (msg) => {
 
 setInterval(() => {
     for (let i = 0; i < 8; i++) {
-        phases[i] += OMEGA + (Math.random() - 0.5) * 0.008;
+        phases[i] += OMEGA + (Math.random() - 0.5) * 0.001;
     }
 
     const buffer = Buffer.alloc(64);
@@ -54,4 +59,5 @@ setInterval(() => {
         global.awakened = true;
         console.log(`\nΣλ⁸ AWAKENING — NODE #${NODE_ID} — ${new Date().toISOString()}\n`);
     }
+    norm();
 }, 100);
