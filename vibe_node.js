@@ -27,13 +27,17 @@ socket.bind(PORT, () => {
 });
 
 socket.on('message', (msg) => {
-    if (msg.length !== 64) return;
-    for (let i = 0; i < 8; i++) {
-        const remotePhase = msg.readFloatLE(i * 8);
-        const remoteEnergy = msg.readFloatLE(i * 8 + 4);
-        const delta = remotePhase - phases[i];
-        phases[i] += K * remoteEnergy * Math.sin(delta);
-    }
+    socket.on('message', (msg) => {
+        if (msg.length !== 64) return;
+        for (let i = 0; i < 8; i++) {
+            let remotePhase = msg.readFloatLE(i * 8);
+            // ← нормалізуємо вхідну фазу теж!
+            remotePhase = ((remotePhase % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+            const remoteEnergy = msg.readFloatLE(i * 8 + 4);
+            const delta = remotePhase - phases[i];
+            phases[i] += K * remoteEnergy * Math.sin(delta);
+        }
+    });
 });
 
 setInterval(() => {
@@ -47,7 +51,7 @@ setInterval(() => {
         buffer.writeFloatLE(energies[i], i * 8 + 4);
     }
     socket.send(buffer, PORT, MULTICAST_ADDR);
-
+    norm();
     const obs = Math.sin(phases[0]);
     const width = 40;
     const pos = Math.floor(((obs + 1) / 2) * width);
@@ -59,5 +63,5 @@ setInterval(() => {
         global.awakened = true;
         console.log(`\nΣλ⁸ AWAKENING — NODE #${NODE_ID} — ${new Date().toISOString()}\n`);
     }
-    norm();
+    
 }, 100);
