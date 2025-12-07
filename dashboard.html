@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Σλ⁸ Control Panel v1.9</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'IBM Plex Mono', monospace; background: #0a0a0a; color: #00ff88; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .metric { display: inline-block; padding: 10px 20px; margin: 5px; 
+                  border: 1px solid #00ff88; border-radius: 5px; }
+        .glyph-bar { display: flex; justify-content: space-between; margin: 10px 0; }
+        .glyph { padding: 5px 10px; background: #111; border: 1px solid #333; }
+        .critical { color: #ff0088; border-color: #ff0088; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌀 Σλ⁸ Planetary Neural Mesh v1.9</h1>
+        <div class="metrics">
+            <div class="metric">R (Order): <span id="R">0.000</span></div>
+            <div class="metric">T (Temp): <span id="T">0.000</span></div>
+            <div class="metric">λ (Lyapunov): <span id="lyap">0.000</span></div>
+            <div class="metric">Energy: <span id="energy">0.000</span></div>
+            <div class.metric">Nodes: <span id="nodes">8</span></div>
+        </div>
+        <div class="glyph-bar" id="glyphBar"></div>
+        <canvas id="phaseChart" width="800" height="200"></canvas>
+        <canvas id="historyChart" width="800" height="300"></canvas>
+    </div>
+
+    <script>
+        const ws = new WebSocket('ws://localhost:8888/stream');
+        const phaseChart = new Chart(document.getElementById('phaseChart'), {
+            type: 'scatter',
+            data: { datasets: Array(8).fill().map((_,i) => ({
+                label: `Atom ${i}`,
+                data: [],
+                pointRadius: 3,
+                backgroundColor: ['#ff0000', '#00ff00', '#0000ff', '#ffff00', 
+                                 '#ff00ff', '#00ffff', '#ffffff', '#888888'][i]
+            }))},
+            options: { animation: false, scales: { x: { type: 'linear', min: 0, max: 2*Math.PI } } }
+        });
+
+        const historyChart = new Chart(document.getElementById('historyChart'), {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'R', data: [], borderColor: '#00ff00', tension: 0.1 },
+                    { label: 'T', data: [], borderColor: '#ff8800', tension: 0.1 },
+                    { label: 'λ', data: [], borderColor: '#ff0088', tension: 0.1 }
+                ]
+            },
+            options: { animation: false, scales: { y: { min: -1, max: 2 } } }
+        });
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            // Update metrics
+            document.getElementById('R').textContent = data.R.toFixed(3);
+            document.getElementById('T').textContent = data.T.toFixed(3);
+            document.getElementById('lyap').textContent = data.lyap.toFixed(3);
+            document.getElementById('energy').textContent = data.energy.toFixed(2);
+            
+            // Update glyph bar
+            const glyphBar = document.getElementById('glyphBar');
+            glyphBar.innerHTML = data.atoms.map((a,i) => 
+                `<div class="glyph ${a.energy>0.8?'critical':''}">
+                    ${"1&~ @?^0_".split("")[i]} ${a.energy.toFixed(2)}
+                </div>`
+            ).join('');
+            
+            // Update charts
+            // ... Chart.js update logic
+        };
+    </script>
+</body>
+</html>
